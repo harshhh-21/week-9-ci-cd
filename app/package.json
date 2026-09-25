@@ -1,0 +1,13 @@
+{
+  "name": "week9-cicd-demo",
+  "version": "1.0.0",
+  "description": "Week 9 CI/CD Demo",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
