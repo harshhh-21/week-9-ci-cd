@@ -19,7 +19,7 @@ pipeline {
             steps {
                 sh '''
                     echo "Installing dependencies..."
-                    npm install
+                    npm ci
                 '''
             }
         }
@@ -28,15 +28,15 @@ pipeline {
             steps {
                 sh '''
                     echo "Running automated test..."
-                    
+
                     npm start > app.log 2>&1 &
                     APP_PID=$!
+
+                    trap 'kill $APP_PID || true' EXIT
 
                     sleep 5
 
                     npm test
-
-                    kill $APP_PID || true
                 '''
             }
         }
@@ -49,6 +49,25 @@ pipeline {
                     docker build \
                       -t ${IMAGE_NAME}:${IMAGE_TAG} \
                       -t ${IMAGE_NAME}:latest .
+
+                    echo "Verifying Docker image..."
+
+                    docker image inspect ${IMAGE_NAME}:${IMAGE_TAG} > /dev/null
+
+                    echo "Docker image verified successfully."
+                '''
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                sh '''
+                    echo "Running Trivy security scan..."
+
+                    trivy image \
+                      --severity HIGH,CRITICAL \
+                      --ignore-unfixed \
+                      ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
         }
@@ -86,6 +105,14 @@ pipeline {
 
         failure {
             echo "CI/CD Pipeline failed."
+        }
+
+        always {
+            sh '''
+                echo "Cleaning workspace..."
+
+                rm -f app.log || true
+            '''
         }
     }
 }
